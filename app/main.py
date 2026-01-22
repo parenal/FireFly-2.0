@@ -62,6 +62,8 @@ def graph_monthly():
     plot_monthly_evolution()
 
 
+
+
 # ---------- LLAMADA FINAL A LA APP ----------
 if __name__ == "__main__":
     app()
