@@ -1,112 +1,174 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
+from datetime import date
 
-from app.services.expenses import add_transaction
-from app.database import SessionLocal
-from app.models import Transaction
+from app.services.expenses import add_transaction, list_transactions
 
 
 class AddTransactionWindow(tk.Toplevel):
-    def __init__(self, parent, on_save):
+    def __init__(self, parent, on_save=None):
         super().__init__(parent)
+
         self.on_save = on_save
 
+        # =========================
+        # Ventana
+        # =========================
         self.title("Añadir transacción")
-        self.geometry("400x420")
+        self.transient(parent)
+        self.grab_set()
         self.resizable(False, False)
 
-        self.create_widgets()
+        # =========================
+        # Variables
+        # =========================
+        self.type_var = tk.StringVar(value="Ingreso")
+        self.amount_var = tk.StringVar()
+        self.category_var = tk.StringVar()
+        self.description_var = tk.StringVar()
 
-    def create_widgets(self):
-        frame = ttk.Frame(self, padding=15)
-        frame.pack(fill="both", expand=True)
+        # =========================
+        # Contenedor principal
+        # =========================
+        container = ttk.Frame(self, padding=(20, 20, 20, 30))
+        container.grid(row=0, column=0, sticky="nsew")
 
-        # Tipo de transacción
-        ttk.Label(frame, text="Tipo").pack(anchor="w")
-        self.type_var = tk.StringVar(value="Gasto")
+        # =========================
+        # Tipo
+        # =========================
+        ttk.Label(container, text="Tipo").grid(row=0, column=0, sticky="w")
         type_combo = ttk.Combobox(
-            frame,
+            container,
             textvariable=self.type_var,
-            values=["Gasto", "Ingreso"],
+            values=["Ingreso", "Gasto"],
             state="readonly"
         )
-        type_combo.pack(fill="x", pady=5)
+        type_combo.grid(row=1, column=0, sticky="ew", pady=(0, 12))
+        type_combo.bind("<<ComboboxSelected>>", self.update_categories)
 
-        # Fecha (calendario)
-        ttk.Label(frame, text="Fecha").pack(anchor="w")
-        self.date_entry = DateEntry(
-            frame,
-            date_pattern="yyyy-mm-dd",
-            locale="es_ES"
-        )
-        self.date_entry.pack(fill="x", pady=5)
+        # =========================
+        # Fecha
+        # =========================
+        ttk.Label(container, text="Fecha").grid(row=2, column=0, sticky="w")
+        self.date_entry = DateEntry(container, date_pattern="yyyy-mm-dd")
+        self.date_entry.set_date(date.today())
+        self.date_entry.grid(row=3, column=0, sticky="ew", pady=(0, 12))
 
-        # Categoría (con memoria)
-        ttk.Label(frame, text="Categoría").pack(anchor="w")
-        self.category_var = tk.StringVar()
+        # =========================
+        # Categoría
+        # =========================
+        ttk.Label(container, text="Categoría").grid(row=4, column=0, sticky="w")
         self.category_combo = ttk.Combobox(
-            frame,
+            container,
             textvariable=self.category_var
         )
-        self.category_combo.pack(fill="x", pady=5)
-        self.load_categories()
+        self.category_combo.grid(row=5, column=0, sticky="ew", pady=(0, 12))
 
-        # Cantidad
-        ttk.Label(frame, text="Cantidad (€)").pack(anchor="w")
-        self.amount_entry = ttk.Entry(frame)
-        self.amount_entry.pack(fill="x", pady=5)
+        # =========================
+        # Importe
+        # =========================
+        ttk.Label(container, text="Importe (€)").grid(row=6, column=0, sticky="w")
+        ttk.Entry(container, textvariable=self.amount_var)\
+            .grid(row=7, column=0, sticky="ew", pady=(0, 12))
 
+        # =========================
         # Descripción
-        ttk.Label(frame, text="Descripción").pack(anchor="w")
-        self.desc_entry = ttk.Entry(frame)
-        self.desc_entry.pack(fill="x", pady=5)
+        # =========================
+        ttk.Label(container, text="Descripción").grid(row=8, column=0, sticky="w")
+        ttk.Entry(container, textvariable=self.description_var)\
+            .grid(row=9, column=0, sticky="ew", pady=(0, 18))
 
-        # Botones
-        btn_frame = ttk.Frame(frame)
-        btn_frame.pack(pady=20)
+        # =========================
+        # Botones (MARGEN REAL)
+        # =========================
+        buttons = ttk.Frame(container)
+        buttons.grid(row=10, column=0, pady=(0, 10))
 
         ttk.Button(
-            btn_frame,
+            buttons,
             text="Guardar",
-            command=self.save
-        ).pack(side="left", padx=5)
+            command=self.save_transaction
+        ).grid(row=0, column=0, padx=10)
 
         ttk.Button(
-            btn_frame,
+            buttons,
             text="Cancelar",
             command=self.destroy
-        ).pack(side="left", padx=5)
+        ).grid(row=0, column=1, padx=10)
 
-    def load_categories(self):
-        session = SessionLocal()
-        categories = session.query(Transaction.category).distinct().all()
-        session.close()
+        # =========================
+        # Grid config
+        # =========================
+        container.columnconfigure(0, weight=1)
 
-        self.category_combo["values"] = [c[0] for c in categories]
+        # =========================
+        # Categorías iniciales
+        # =========================
+        self.update_categories()
 
-    def save(self):
+        # =========================
+        # Forzar cálculo real
+        # =========================
+        self.update_idletasks()
+
+        # Tamaño mínimo REAL (clave)
+        self.minsize(
+            self.winfo_reqwidth(),
+            self.winfo_reqheight() + 10
+        )
+
+        # Centrar ventana
+        x = (self.winfo_screenwidth() // 2) - (self.winfo_reqwidth() // 2)
+        y = (self.winfo_screenheight() // 2) - (self.winfo_reqheight() // 2)
+        self.geometry(f"+{x}+{y}")
+
+    # =========================
+    # Categorías dinámicas
+    # =========================
+    def update_categories(self, event=None):
+        tx_type = "income" if self.type_var.get() == "Ingreso" else "expense"
+
+        transactions = get_all_transactions()
+
+        categories = sorted({
+            tx.category
+            for tx in transactions
+            if tx.type == tx_type and tx.category
+        })
+
+        self.category_combo["values"] = categories
+
+    # =========================
+    # Guardar
+    # =========================
+    def save_transaction(self):
         try:
-            amount = float(self.amount_entry.get())
-            if amount <= 0:
-                raise ValueError
-
-            tipo_ui = self.type_var.get()
-            t_type = "income" if tipo_ui == "Ingreso" else "expense"
-
-            add_transaction(
-                t_type=t_type,
-                amount=amount,
-                category=self.category_var.get(),
-                description=self.desc_entry.get(),
-                date=self.date_entry.get_date()
-            )
-
-            self.on_save()
-            self.destroy()
-
+            amount = float(self.amount_var.get())
         except ValueError:
-            messagebox.showerror(
-                "Error",
-                "La cantidad debe ser un número positivo"
-            )
+            messagebox.showerror("Error", "El importe debe ser un número válido")
+            return
+
+        if not self.category_var.get():
+            messagebox.showerror("Error", "La categoría es obligatoria")
+            return
+
+        t_type = "income" if self.type_var.get() == "Ingreso" else "expense"
+
+        if t_type == "expense" and amount > 0:
+            amount = -amount
+        elif t_type == "income" and amount < 0:
+            amount = abs(amount)
+
+        add_transaction(
+            t_type=t_type,
+            amount=amount,
+            category=self.category_var.get(),
+            description=self.description_var.get(),
+            date=self.date_entry.get_date()
+        )
+
+        if self.on_save:
+            self.on_save()
+
+        self.destroy()
