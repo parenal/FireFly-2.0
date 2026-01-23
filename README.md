@@ -1,25 +1,72 @@
-# Aplicación de Finanzas Personales (CLI)
+# Aplicación de Finanzas Personales
 
-Este proyecto es una aplicación de finanzas personales que actualmente se maneja **mediante línea de comandos (CLI)**. Aunque la interfaz gráfica está en desarrollo, todas las funcionalidades principales ya están disponibles desde terminal.
+Este proyecto es una aplicación de **finanzas personales** que permite registrar, analizar y visualizar **ingresos y gastos**.  
 
-Este documento describe **los comandos actualmente soportados**, su propósito y ejemplos de uso.
+La aplicación dispone actualmente de **dos modos de uso**:
+
+* **Interfaz de línea de comandos (CLI)** – completamente funcional  
+* **Interfaz gráfica (GUI)** – disponible y en evolución
+
+Ambas interfaces utilizan el mismo backend y los mismos datos, por lo que son totalmente compatibles entre sí.
 
 ---
 
 ## Requisitos
 
-* Python 3.10 o superior
+* Python 3.10 o superior  
 * Dependencias instaladas (según `requirements.txt`)
 
-Ejecución general:
+Instalación de dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Modos de ejecución
+
+### Ejecución por línea de comandos (CLI)
 
 ```bash
 python -m app.main <comando> [opciones]
 ```
 
+### Ejecución de la interfaz gráfica (GUI)
+
+```bash
+python run_gui.py
+```
+
 ---
 
-## Comandos disponibles
+## Interfaz Gráfica (GUI)
+
+La aplicación cuenta con una **interfaz gráfica de usuario** que permite realizar las principales operaciones sin necesidad de usar la terminal.
+
+Para iniciarla:
+
+```bash
+python run_gui.py
+```
+
+Funcionalidades disponibles desde la GUI:
+
+* Añadir ingresos y gastos
+* Visualizar gráficos de gastos por categoría
+* Visualizar evolución mensual de ingresos y gastos
+* Consultar el balance general
+* Revisar transacciones registradas
+
+> La GUI se encuentra en desarrollo activo y se irá ampliando progresivamente con nuevas funcionalidades y mejoras visuales.
+
+---
+
+## Interfaz de Línea de Comandos (CLI)
+
+A continuación se detallan **todos los comandos actualmente soportados** en modo CLI.
+
+---
 
 ### 1. Mostrar gráfico de gastos por categoría
 
@@ -45,8 +92,8 @@ python -m app.main graph-monthly
 
 Uso típico:
 
-* Comparar ingresos vs gastos mes a mes
-* Detectar tendencias
+* Comparar ingresos vs gastos mes a mes  
+* Detectar tendencias de ahorro o sobrecoste
 
 ---
 
@@ -66,8 +113,8 @@ python -m app.main add --t-type expense --amount 10 --category COMIDA
 
 Notas:
 
-* `amount` es un valor numérico (decimal permitido)
-* `category` es libre y depende del usuario
+* `amount` debe ser un valor numérico (se permiten decimales)
+* `category` es libre y definida por el usuario
 
 ---
 
@@ -88,7 +135,7 @@ python -m app.main add --t-type income --amount 1500 --category salario
 Notas:
 
 * `amount` y `category` son variables
-* La categoría puede ser cualquier concepto (salario, extra, devolución, etc.)
+* La categoría puede representar cualquier concepto (salario, extra, devolución, etc.)
 
 ---
 
@@ -96,9 +143,9 @@ Notas:
 
 Muestra en terminal el balance total acumulado:
 
-* Total de ingresos
-* Total de gastos
-* Balance final
+* Total de ingresos  
+* Total de gastos  
+* Balance final  
 
 ```bash
 python -m app.main balance
@@ -120,16 +167,23 @@ python -m app.main list
 
 Uso típico:
 
-* Revisar movimientos recientes
+* Revisar movimientos recientes  
 * Verificar que una transacción se ha registrado correctamente
 
 ---
 
 ## Estado del proyecto
 
-* ✅ Backend funcional
-* ✅ Persistencia de transacciones
-* ✅ Visualización por gráficos (Matplotlib)
-* 🚧 Interfaz gráfica en desarrollo
+* ✅ Backend funcional  
+* ✅ Persistencia de transacciones  
+* ✅ Visualización mediante gráficos (Matplotlib)  
+* ✅ Interfaz CLI completa  
+* 🚧 Interfaz gráfica en desarrollo continuo  
 
-Este README se irá ampliando conforme se incorporen nuevas funcionalidades.
+---
+
+## Notas finales
+
+Este proyecto está diseñado para ser utilizado tanto por usuarios que prefieren **terminal** como por aquellos que optan por una **interfaz gráfica** más visual.  
+
+El README se irá actualizando conforme se añadan nuevos comandos, opciones avanzadas y mejoras en la GUI.
