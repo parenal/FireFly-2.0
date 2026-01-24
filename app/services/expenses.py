@@ -1,104 +1,92 @@
 from app.database import SessionLocal
-from app.models import Transaction
+from app.models.transaction import Transaction
 
 
 # =========================
-# Crear transacción
+# CREAR TRANSACCIÓN
 # =========================
 def add_transaction(t_type, amount, category, description=None, date=None):
-    session = SessionLocal()
-
-    normalized_category = category.strip().lower().capitalize() if category else None
-
-    tx = Transaction(
-        type=t_type.lower(),   # "income" o "expense"
-        amount=amount,
-        category=normalized_category,
-        description=description,
-        date=date
-    )
-
-    session.add(tx)
-    session.commit()
-    session.close()
+    db = SessionLocal()
+    try:
+        tx = Transaction(
+            type=t_type,
+            amount=amount,
+            category=category.strip().capitalize(),
+            description=description,
+            date=date
+        )
+        db.add(tx)
+        db.commit()
+    finally:
+        db.close()
 
 
 # =========================
-# Listar transacciones
+# LISTAR TRANSACCIONES
 # =========================
 def list_transactions(limit=100):
-    session = SessionLocal()
-
-    txs = (
-        session
-        .query(Transaction)
-        .order_by(Transaction.date.desc(), Transaction.id.desc())
-        .limit(limit)
-        .all()
-    )
-
-    session.close()
-    return txs
+    db = SessionLocal()
+    try:
+        return (
+            db.query(Transaction)
+            .order_by(Transaction.date.desc(), Transaction.id.desc())
+            .limit(limit)
+            .all()
+        )
+    finally:
+        db.close()
 
 
 # =========================
-# Eliminar transacción
+# OBTENER UNA TRANSACCIÓN
 # =========================
-def delete_transaction(tx_id):
-    session = SessionLocal()
-
-    tx = session.get(Transaction, tx_id)
-    if tx:
-        session.delete(tx)
-        session.commit()
-
-    session.close()
+def get_transaction_by_id(transaction_id):
+    db = SessionLocal()
+    try:
+        return db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    finally:
+        db.close()
 
 
 # =========================
-# Actualizar transacción
+# ACTUALIZAR TRANSACCIÓN
 # =========================
 def update_transaction(
-    tx_id,
+    transaction_id,
     t_type,
     amount,
     category,
-    description=None,
-    date=None
+    description,
+    date
 ):
-    session = SessionLocal()
+    db = SessionLocal()
+    try:
+        tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        if not tx:
+            return
 
-    tx = session.get(Transaction, tx_id)
-    if not tx:
-        session.close()
-        return
+        tx.type = t_type
+        tx.amount = amount
+        tx.category = category.strip().capitalize()
+        tx.description = description
+        tx.date = date
 
-    tx.type = t_type.lower()
-    tx.amount = amount
-    tx.category = category.strip().lower().capitalize() if category else None
-    tx.description = description
-    tx.date = date
-
-    session.commit()
-    session.close()
+        db.commit()
+    finally:
+        db.close()
 
 
 # =========================
-# Categorías existentes
+# ELIMINAR TRANSACCIÓN
 # =========================
-def get_existing_categories(t_type):
-    session = SessionLocal()
+def delete_transaction(transaction_id):
+    db = SessionLocal()
+    try:
+        tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        if not tx:
+            return
 
-    rows = (
-        session
-        .query(Transaction.category)
-        .filter(Transaction.type == t_type.lower())
-        .distinct()
-        .all()
-    )
-
-    session.close()
-
-    return sorted(
-        [row[0] for row in rows if row[0]]
-    )
+        db.delete(tx)
+        db.commit()
+    finally:
+        db.close()
