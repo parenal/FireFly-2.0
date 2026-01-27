@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
 
-from app.gui.add_transaction_window import AddTransactionWindow
 from app.services.expenses import (
     list_transactions,
+    list_transactions_by_month,
     delete_transaction
 )
+from app.gui.add_transaction_window import AddTransactionWindow
 
 
 class TransactionsView(ttk.Frame):
@@ -14,148 +16,149 @@ class TransactionsView(ttk.Frame):
         self.pack(fill="both", expand=True)
 
         # =========================
-        # Estilos
+        # MESES
         # =========================
-        style = ttk.Style()
-        style.configure("Treeview", rowheight=28, font=("Arial", 10))
-        style.configure("Treeview.Heading", font=("Arial", 10, "bold"))
+        self.months = {
+            "Enero": 1,
+            "Febrero": 2,
+            "Marzo": 3,
+            "Abril": 4,
+            "Mayo": 5,
+            "Junio": 6,
+            "Julio": 7,
+            "Agosto": 8,
+            "Septiembre": 9,
+            "Octubre": 10,
+            "Noviembre": 11,
+            "Diciembre": 12,
+        }
+
+        now = datetime.now()
+        self.selected_month = tk.StringVar()
+        self.selected_year = tk.IntVar()
+
+        self.selected_month.set(list(self.months.keys())[now.month - 1])
+        self.selected_year.set(now.year)
 
         # =========================
-        # Título
+        # FILTROS SUPERIORES
         # =========================
-        ttk.Label(
-            self,
-            text="Transacciones",
-            font=("Arial", 16, "bold")
-        ).pack(pady=10)
+        filter_frame = ttk.Frame(self)
+        filter_frame.pack(fill="x", padx=10, pady=5)
 
-        # =========================
-        # Tabla
-        # =========================
-        columns = ("fecha", "tipo", "categoria", "importe", "descripcion")
+        ttk.Label(filter_frame, text="Mes:").pack(side="left", padx=5)
 
-        self.tree = ttk.Treeview(
-            self,
-            columns=columns,
-            show="headings"
+        month_cb = ttk.Combobox(
+            filter_frame,
+            textvariable=self.selected_month,
+            values=list(self.months.keys()),
+            state="readonly",
+            width=12
         )
+        month_cb.pack(side="left")
 
-        for col, text, width, anchor in [
-            ("fecha", "Fecha", 100, "center"),
-            ("tipo", "Tipo", 100, "center"),
-            ("categoria", "Categoría", 150, "w"),
-            ("importe", "Importe (€)", 100, "e"),
-            ("descripcion", "Descripción", 250, "w"),
-        ]:
-            self.tree.heading(col, text=text)
-            self.tree.column(col, width=width, anchor=anchor)
+        ttk.Label(filter_frame, text="Año:").pack(side="left", padx=5)
 
+        years = list(range(now.year - 5, now.year + 1))
+        year_cb = ttk.Combobox(
+            filter_frame,
+            textvariable=self.selected_year,
+            values=years,
+            state="readonly",
+            width=6
+        )
+        year_cb.pack(side="left")
+
+        month_cb.bind("<<ComboboxSelected>>", lambda e: self.load_transactions())
+        year_cb.bind("<<ComboboxSelected>>", lambda e: self.load_transactions())
+
+        # =========================
+        # TABLA
+        # =========================
+        columns = ("id", "type", "amount", "category", "description", "date")
+
+        self.tree = ttk.Treeview(self, columns=columns, show="headings")
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # =========================
-        # Menú contextual
-        # =========================
-        self.menu = tk.Menu(self, tearoff=0)
-        self.menu.add_command(
-            label="✏️ Editar transacción",
-            command=self.edit_transaction
-        )
-        self.menu.add_command(
-            label="🗑 Eliminar transacción",
-            command=self.delete_transaction
-        )
+        self.tree.heading("id", text="ID")
+        self.tree.heading("type", text="Tipo")
+        self.tree.heading("amount", text="Importe")
+        self.tree.heading("category", text="Categoría")
+        self.tree.heading("description", text="Descripción")
+        self.tree.heading("date", text="Fecha")
 
         self.tree.bind("<Button-3>", self.show_context_menu)
 
-        # =========================
-        # Botón añadir
-        # =========================
-        ttk.Button(
-            self,
-            text="➕ Añadir transacción",
-            command=self.open_add_transaction_window
-        ).pack(pady=(0, 10))
+        self.context_menu = tk.Menu(self, tearoff=0)
+        self.context_menu.add_command(label="Editar", command=self.edit_transaction)
+        self.context_menu.add_command(label="Eliminar", command=self.delete_transaction)
 
-        # =========================
-        # Datos
-        # =========================
-        self.transactions = []
         self.load_transactions()
 
     # =========================
-    # Cargar datos
+    # CARGAR TRANSACCIONES
     # =========================
     def load_transactions(self):
-        self.tree.delete(*self.tree.get_children())
+        for row in self.tree.get_children():
+            self.tree.delete(row)
 
-        self.transactions = list_transactions(limit=100)
+        month_name = self.selected_month.get()
+        year = self.selected_year.get()
 
-        for tx in self.transactions:
-            tipo = "Ingreso" if tx.type == "income" else "Gasto"
-            categoria = tx.category or ""
+        month = self.months.get(month_name)
+        transactions = list_transactions_by_month(year, month)
 
+        for tx in transactions:
             self.tree.insert(
                 "",
                 "end",
-                iid=str(tx.id),
                 values=(
-                    tx.date,
-                    tipo,
-                    categoria,
-                    f"{tx.amount:.2f}",
-                    tx.description or ""
+                    tx.id,
+                    tx.type,
+                    tx.amount,
+                    tx.category,
+                    tx.description,
+                    tx.date.strftime("%d/%m/%Y"),
                 )
             )
 
     # =========================
-    # Click derecho
+    # MENÚ CONTEXTUAL
     # =========================
     def show_context_menu(self, event):
         row_id = self.tree.identify_row(event.y)
-        if not row_id:
-            return
-
-        self.tree.selection_set(row_id)
-        self.menu.tk_popup(event.x_root, event.y_root)
+        if row_id:
+            self.tree.selection_set(row_id)
+            self.context_menu.tk_popup(event.x_root, event.y_root)
 
     # =========================
-    # Editar
+    # EDITAR
     # =========================
     def edit_transaction(self):
         selected = self.tree.selection()
         if not selected:
             return
 
-        tx_id = int(selected[0])
-        tx = next(t for t in self.transactions if t.id == tx_id)
+        values = self.tree.item(selected[0], "values")
+        tx_id = values[0]
 
         AddTransactionWindow(
             self,
-            transaction=tx,
+            transaction_id=tx_id,
             on_save=self.load_transactions
         )
 
     # =========================
-    # Eliminar
+    # ELIMINAR
     # =========================
     def delete_transaction(self):
         selected = self.tree.selection()
         if not selected:
             return
 
-        tx_id = int(selected[0])
+        values = self.tree.item(selected[0], "values")
+        tx_id = values[0]
 
-        if not messagebox.askyesno(
-            "Confirmar",
-            "¿Seguro que quieres eliminar esta transacción?"
-        ):
-            return
-
-        delete_transaction(tx_id)
-        self.load_transactions()
-
-    # =========================
-    # Añadir
-    # =========================
-    def open_add_transaction_window(self):
-        AddTransactionWindow(self, on_save=self.load_transactions)
+        if messagebox.askyesno("Confirmar", "¿Eliminar esta transacción?"):
+            delete_transaction(tx_id)
+            self.load_transactions()

@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import date
-
 from tkcalendar import DateEntry
+
 from app.services.expenses import update_transaction, list_transactions
 
 
@@ -18,17 +17,12 @@ class EditTransactionWindow(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
 
-        # =========================
         # Variables
-        # =========================
         self.type_var = tk.StringVar(value=transaction.type.capitalize())
         self.amount_var = tk.StringVar(value=str(abs(transaction.amount)))
         self.category_var = tk.StringVar(value=transaction.category)
         self.description_var = tk.StringVar(value=transaction.description or "")
 
-        # =========================
-        # Contenedor
-        # =========================
         container = ttk.Frame(self, padding=15)
         container.grid(row=0, column=0, sticky="nsew")
 
@@ -79,6 +73,12 @@ class EditTransactionWindow(tk.Toplevel):
         self.update_categories()
         self._fix_window_size(parent)
 
+        # =========================
+        # Atajos de teclado
+        # =========================
+        self.bind("<Return>", lambda e: self.save_changes())
+        self.bind("<Escape>", lambda e: self.destroy())
+
     # =========================
     def _fix_window_size(self, parent):
         self.update_idletasks()
@@ -105,17 +105,14 @@ class EditTransactionWindow(tk.Toplevel):
             return
 
         t_type = self.type_var.get().lower()
-        if t_type == "gasto":
-            amount = -abs(amount)
-        else:
-            amount = abs(amount)
+        amount = -abs(amount) if t_type == "gasto" else abs(amount)
 
         update_transaction(
             transaction_id=self.transaction.id,
             t_type=t_type,
             amount=amount,
-            category=self.category_var.get().strip(),
-            description=self.description_var.get().strip(),
+            category=self.category_var.get(),
+            description=self.description_var.get(),
             date=self.date_entry.get_date()
         )
 

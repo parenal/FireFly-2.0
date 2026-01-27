@@ -1,3 +1,4 @@
+from sqlalchemy import extract
 from app.database import SessionLocal
 from app.models.transaction import Transaction
 
@@ -38,12 +39,18 @@ def list_transactions(limit=100):
 
 
 # =========================
-# OBTENER UNA TRANSACCIÓN
+# LISTAR POR MES / AÑO
 # =========================
-def get_transaction_by_id(transaction_id):
+def list_transactions_by_month(year, month):
     db = SessionLocal()
     try:
-        return db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        return (
+            db.query(Transaction)
+            .filter(extract("year", Transaction.date) == year)
+            .filter(extract("month", Transaction.date) == month)
+            .order_by(Transaction.date.desc(), Transaction.id.desc())
+            .all()
+        )
     finally:
         db.close()
 
