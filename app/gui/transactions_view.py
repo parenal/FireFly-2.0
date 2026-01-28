@@ -149,7 +149,7 @@ class TransactionsView(ttk.Frame):
             if tx.date.month == month_index and tx.date.year == year:
                 self.tree.insert("", "end", values=(
                     tx.id,
-                    tx.type,
+                    tx.type.capitalize(),
                     f"{tx.amount:.2f}",
                     tx.category
                 ))

@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-from app.services.auth_service import create_user
+from app.services.auth import create_user
 
 
 class RegisterWindow(tk.Toplevel):

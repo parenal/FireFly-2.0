@@ -1,10 +1,17 @@
 import pandas as pd
 from app.database import SessionLocal
-from app.models import Transaction
+from app.models.transaction import Transaction
+from app.state.session import get_current_user
+
 
 def get_transactions_df():
     session = SessionLocal()
-    data = session.query(Transaction).all()
+    user = get_current_user()
+    if user:
+        data = session.query(Transaction).filter(Transaction.user_id == user.id).all()
+    else:
+        data = session.query(Transaction).all()
+
     session.close()
 
     df = pd.DataFrame([{
