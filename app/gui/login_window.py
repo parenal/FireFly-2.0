@@ -11,30 +11,29 @@ class LoginWindow(tk.Toplevel):
         self.on_login_success = on_login_success
 
         self.title("Inicio de sesión")
-        self.geometry("300x220")
         self.resizable(False, False)
 
-        tk.Label(self, text="Usuario").pack(pady=(15, 0))
+        tk.Label(self, text="Usuario").pack(pady=(15, 0), fill="x", padx=12)
         self.username_entry = tk.Entry(self)
-        self.username_entry.pack()
+        self.username_entry.pack(fill="x", padx=12)
 
-        tk.Label(self, text="Contraseña").pack(pady=(10, 0))
+        tk.Label(self, text="Contraseña").pack(pady=(10, 0), fill="x", padx=12)
         self.password_entry = tk.Entry(self, show="*")
-        self.password_entry.pack()
+        self.password_entry.pack(fill="x", padx=12)
 
-        tk.Button(self, text="Aceptar", command=self.login).pack(pady=10)
-        tk.Button(self, text="Cancelar", command=self.on_cancel).pack()
+        tk.Button(self, text="Aceptar", command=self.login).pack(pady=10, padx=12, fill="x")
+        tk.Button(self, text="Cancelar", command=self.on_cancel).pack(padx=12, fill="x")
 
         # Recordarme checkbox
         self.remember_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(self, text="Recordarme", variable=self.remember_var).pack(pady=(6, 0))
+        tk.Checkbutton(self, text="Recordarme", variable=self.remember_var).pack(pady=(6, 0), padx=12, anchor="w")
 
         tk.Button(
             self,
             text="Registrarse",
             command=self.open_register,
             fg="blue"
-        ).pack(pady=10)
+        ).pack(pady=10, padx=12, fill="x")
 
         self.bind("<Return>", lambda e: self.login())
         self.bind("<Escape>", lambda e: self.on_cancel())
@@ -52,6 +51,12 @@ class LoginWindow(tk.Toplevel):
                 self.transient(parent)
             except Exception:
                 pass
+
+        # Auto-size and center the window so all controls are visible
+        try:
+            self._fix_window_size(parent)
+        except Exception:
+            pass
 
         # Ensure the window is visible and on top
         self.deiconify()
@@ -93,3 +98,30 @@ class LoginWindow(tk.Toplevel):
     def open_register(self):
         self.withdraw()
         RegisterWindow(self)
+
+    def _fix_window_size(self, parent):
+        # compute requested size from widgets and center over parent
+        self.update_idletasks()
+        w, h = self.winfo_reqwidth(), self.winfo_reqheight()
+        # enforce a sensible minimum width so controls don't wrap vertically
+        min_w = 320
+        if w < min_w:
+            w = min_w
+
+        try:
+            pw = parent.winfo_width()
+            ph = parent.winfo_height()
+            if pw and ph:
+                x = parent.winfo_rootx() + pw // 2 - w // 2
+                y = parent.winfo_rooty() + ph // 2 - h // 2
+            else:
+                # parent hidden/withdrawn: center on screen
+                sw = self.winfo_screenwidth()
+                sh = self.winfo_screenheight()
+                x = sw // 2 - w // 2
+                y = sh // 2 - h // 2
+
+            self.geometry(f"{w}x{h}+{x}+{y}")
+        except Exception:
+            # fallback: just set requested size
+            self.geometry(f"{w}x{h}")

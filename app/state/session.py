@@ -63,3 +63,36 @@ def clear_remembered_user():
 			os.remove(path)
 	except Exception:
 		pass
+
+
+# ------------------
+# Theme persistence
+# ------------------
+def _theme_file_path():
+	root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+	return os.path.join(root, "data", "theme.cfg")
+
+
+def save_theme(theme: str):
+	"""Guarda el tema seleccionado ('light' o 'dark')."""
+	try:
+		path = _theme_file_path()
+		dirpath = os.path.dirname(path)
+		os.makedirs(dirpath, exist_ok=True)
+		with open(path, "w", encoding="utf-8") as f:
+			f.write(theme)
+	except Exception:
+		pass
+
+
+def load_theme() -> str:
+	"""Carga el tema persistido. Devuelve 'light' por defecto si no existe."""
+	try:
+		path = _theme_file_path()
+		if not os.path.exists(path):
+			return "light"
+		with open(path, "r", encoding="utf-8") as f:
+			t = f.read().strip().lower()
+			return t if t in ("light", "dark") else "light"
+	except Exception:
+		return "light"

@@ -1,4 +1,5 @@
 import tkinter as tk
+import logging
 from app.gui.login_window import LoginWindow
 from app.gui.main_window import MainWindow
 from app.state.session import set_current_user
@@ -7,9 +8,11 @@ import traceback
 
 
 def main():
-    print("[debug] Creando root Tk")
+    logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+    log = logging.getLogger("firefly")
+    log.debug("Creando root Tk")
     root = tk.Tk()
-    print("[debug] Ocultando root")
+    log.debug("Ocultando root")
     root.withdraw()  # ocultamos root al inicio
 
     main_win = {"instance": None}
@@ -44,7 +47,7 @@ def main():
         except Exception:
             pass
 
-    print("[debug] Lanzando LoginWindow")
+    log.debug("Lanzando LoginWindow")
     # Auto-login si hay usuario recordado
     try:
         from app.state.session import get_remembered_username
@@ -62,7 +65,7 @@ def main():
             LoginWindow(root, on_login_success=on_login_success)
     except Exception:
         LoginWindow(root, on_login_success=on_login_success)
-    print("[debug] Entrando en mainloop")
+    log.debug("Entrando en mainloop")
     root.mainloop()
 
 
@@ -70,7 +73,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        traceback.print_exc()
+        logging.exception('Unhandled exception in main')
         try:
             input("Ha ocurrido un error. Pulsa Enter para salir...")
         except Exception:

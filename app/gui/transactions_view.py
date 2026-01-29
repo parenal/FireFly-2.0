@@ -58,6 +58,25 @@ class TransactionsView(ttk.Frame):
         ttk.Frame(filter_frame).pack(side="left", expand=True)
 
         # =========================
+        # Balance summary (se mostrará justo debajo de los selectores)
+        # =========================
+        self.summary_frame = ttk.Frame(self, padding=(10, 6))
+        self.summary_frame.pack(fill="x", padx=10, pady=(0, 6))
+
+        self.income_label = ttk.Label(self.summary_frame, text="Ingresos: 0.00")
+        self.income_label.pack(side="left", padx=(0, 12))
+
+        self.expense_label = ttk.Label(self.summary_frame, text="Gastos: 0.00")
+        self.expense_label.pack(side="left", padx=(0, 12))
+
+        self.net_label = ttk.Label(self.summary_frame, text="Balance: 0.00")
+        self.net_label.pack(side="left", padx=(0, 12))
+
+        # refrescar balances al cambiar los combos
+        self.month_combo.bind("<<ComboboxSelected>>", lambda e: self.update_balances())
+        self.year_combo.bind("<<ComboboxSelected>>", lambda e: self.update_balances())
+
+        # =========================
         # Botón +
         # =========================
         add_btn = ttk.Button(
@@ -110,7 +129,43 @@ class TransactionsView(ttk.Frame):
         self.year_combo.bind("<<ComboboxSelected>>", lambda e: self.load_transactions())
 
         self._load_months_years()
+        self.update_balances()
         self.load_transactions()
+
+    def update_balances(self):
+        try:
+            from app.services.reports import monthly_summary
+
+            month_index = [
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ].index(self.month_var.get()) + 1
+            year = int(self.year_var.get())
+
+            income, expense, net = monthly_summary(year, month_index)
+
+            # format and color
+            try:
+                self.income_label.config(text=f"Ingresos: {income:,.2f} €")
+                self.expense_label.config(text=f"Gastos: {expense:,.2f} €")
+                self.net_label.config(text=f"Balance: {net:,.2f} €")
+                # color net_label
+                if net < 0:
+                    self.net_label.config(foreground="red")
+                else:
+                    self.net_label.config(foreground="green")
+            except Exception:
+                self.income_label.config(text=f"Ingresos: {income} €")
+                self.expense_label.config(text=f"Gastos: {expense} €")
+                self.net_label.config(text=f"Balance: {net} €")
+        except Exception:
+            # silently ignore; keep previous values
+            try:
+                import logging
+
+                logging.getLogger('firefly.gui.transactions_view').exception('update_balances failed')
+            except Exception:
+                pass
 
     # ======================================================
     # Cargar meses y años
@@ -150,9 +205,14 @@ class TransactionsView(ttk.Frame):
                 self.tree.insert("", "end", values=(
                     tx.id,
                     tx.type.capitalize(),
-                    f"{tx.amount:.2f}",
+                    f"{tx.amount:,.2f} €",
                     tx.category
                 ))
+        # Refresh balances after loading transactions so UI stays in sync
+        try:
+            self.update_balances()
+        except Exception:
+            pass
 
     # ======================================================
     # Acciones
